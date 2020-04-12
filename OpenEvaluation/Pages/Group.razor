@@ -1,0 +1,28 @@
+﻿@page "/group"
+
+
+@if (UserService.CurrentUser.Role == Role.Teacher || UserService.CurrentUser.Role == Role.Admin)
+{
+    <h3>Manage Groups</h3>
+}
+
+@if (UserService.CurrentUser.Role == Role.Student)
+{
+    <h3>My Group</h3>
+
+}
+
+@code {
+
+
+
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (UserService.IsLogin == false)
+        {
+            Navigation.NavigateTo("/", true);
+        }
+        base.OnAfterRender(firstRender);
+    }
+}

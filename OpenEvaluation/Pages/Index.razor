@@ -1,0 +1,49 @@
+﻿@page "/"
+@using System.Text.RegularExpressions
+@using Microsoft.Extensions.Hosting
+@using Microsoft.Extensions.WebEncoders.Testing
+@using OpenEvaluation.Helpers
+
+@if (!UserService.IsLogin)
+{
+    <h2> Login</h2>
+
+    <fieldset class="form-group">
+        <div class="form-group">
+            <label>Username</label>
+            <input class="form-control" type="text" @bind="UserService.UserId" />
+        </div>
+        <div class="form-group">
+            <label>Password</label>
+            <input class="form-control" type="password" @bind="UserService.Password" />
+        </div>
+        <button type="submit" class="btn btn-primary" @onclick="UserService.Login">Login</button>
+    </fieldset>
+}
+else
+{
+    <h2>Welcome, @UserService.CurrentUser.Name</h2>
+
+    <table class="table">
+        <tr>
+            <th>UserId</th>
+            <td>@UserService.CurrentUser.UserId</td>
+        </tr>
+        <tr>
+            <th>Password</th>
+            <td><a href="password">Change Password</a></td>
+        </tr>
+        <tr>
+            <th>Role</th>
+            <td>@UserService.CurrentUser.Role.ToString()</td>
+        </tr>
+    </table>
+}
+
+
+@code
+{
+    
+
+    
+}
