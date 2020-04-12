@@ -32,6 +32,7 @@ namespace OpenEvaluation
             services.AddDbContext<EvaluateContext>(options =>
                 options.UseSqlServer(Configuration.GetConnectionString("OpenEvaluationDb")));
             services.AddScoped<UserService>();
+            services.AddScoped<EventsService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

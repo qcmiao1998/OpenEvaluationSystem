@@ -8,14 +8,122 @@
 
 @if (UserService.CurrentUser.Role == Role.Student)
 {
-    <h3>My Group</h3>
 
+    if (IsInGroup == true)
+    {
+        <h3>My Group</h3>
+        <h4>Group name</h4>
+        <p class="text-body">@StudentGroup.GroupName</p>
+        <h4>Group members</h4>
+        <table class="table">
+            @foreach (var s in StudentGroup.Users)
+            {
+                <tr>
+                    <td>@s.Name</td>
+                </tr>
+            }
+        </table>
+    }
+
+    if (IsInGroup == false)
+    {
+        <h4>Create Group</h4>
+        <fieldset class="form-group">
+            <div class="form-group">
+                <label>Group name</label>
+                <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
+            </div>
+            <div class="form-group">
+                <table class="table">
+                    <tr>
+                        <th>Group members</th>
+                    </tr>
+                    @foreach (var s in StudentGroup.Users)
+                    {
+                        <tr>
+                            <td>@s.Name</td>
+                        </tr>
+                    }
+                </table>
+                <label>Classmate login id</label>
+                <input class="form-control" type="text" @bind="PendingAddUserId" />
+                <button type="submit" class="btn btn-primary" @onclick="GroupAddUser">Add member</button>
+            </div>
+            <button type="submit" class="btn btn-primary" @onclick="CreateGroup">Login</button>
+        </fieldset>
+    }
 }
+
+<p class="text-warning">@Warning</p>
 
 @code {
 
+    #region Student
+
+    bool? IsInGroup { get; set; } = null;
+
+    Data.Group StudentGroup { get; set; }
+
+    void CheckStudentInGroup()
+    {
+        var tempGroup = Db.Groups.Where(g => g.Users.Count(u => u.UserId == UserService.CurrentUser.UserId) != 0);
+        switch (tempGroup.Count())
+        {
+            case 0:
+                IsInGroup = false;
+                StudentGroup = new Data.Group();
+                StudentGroup.GroupId = Guid.NewGuid().ToString();
+                StudentGroup.Users = new List<User>(new []{UserService.CurrentUser});
+                break;
+            case 1:
+                IsInGroup = true;
+                StudentGroup = tempGroup.FirstOrDefault();
+                break;
+            default:
+                Warning = "Please contact the administrator.";
+                break;
+        }
+    }
+
+    string PendingAddUserId { get; set; }
+    void GroupAddUser()
+    {
+        var user = Db.Users.Where(u => u.UserId == PendingAddUserId);
+        if (!user.Any())
+        {
+            Warning = $"User {PendingAddUserId} not found.";
+            return;
+        }
+        if (Db.Groups.Any(g=> g.Users.Any(u => u.UserId == user.FirstOrDefault().UserId)))
+        {
+            Warning = "The user has been in a group.";
+            return;
+        }
+        if (StudentGroup.Users.Any(u => u.UserId == PendingAddUserId))
+        {
+            Warning = "The user has been added.";
+            return;
+        }
+        StudentGroup.Users.Add(user.FirstOrDefault());
+    }
+
+    void CreateGroup()
+    {
+        Db.Groups.Add(StudentGroup);
+        Db.SaveChanges();
+        CheckStudentInGroup();
+        this.StateHasChanged();
+    }
+
+    #endregion
+
+    #region Teacher
 
 
+
+    #endregion
+
+    string Warning { get; set; }
 
     protected override void OnAfterRender(bool firstRender)
     {
@@ -23,6 +131,18 @@
         {
             Navigation.NavigateTo("/", true);
         }
+
         base.OnAfterRender(firstRender);
     }
+
+    protected override void OnInitialized()
+    {
+        if (UserService.CurrentUser.Role == Role.Student)
+        {
+            CheckStudentInGroup();
+            this.StateHasChanged();
+        }
+        base.OnInitialized();
+    }
+
 }

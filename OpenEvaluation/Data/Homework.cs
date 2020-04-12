@@ -10,8 +10,8 @@ namespace OpenEvaluation.Data
         public string HomeworkId { get; set; }
         public User Owner { get; set; }
         public HomeworkType Type { get; set; }
-        public HomeworkScoreItem[] ScoreItems { get; set; }
-        public HomeworkSubmit[] Submits { get; set; }
+        public List<HomeworkScoreItem> ScoreItems { get; set; }
+        public List<HomeworkSubmit> Submits { get; set; }
     }
 
     public class HomeworkSubmit
@@ -22,7 +22,7 @@ namespace OpenEvaluation.Data
         public User SubmitterUser { get; set; }
         public Group SubmitterGroup { get; set; }
         public HomeworkContent Content { get; set; }
-        public HomeworkScore[] Scores { get; set; }
+        public List<HomeworkScore> Scores { get; set; }
         public Homework Homework { get; set; }
     }
 

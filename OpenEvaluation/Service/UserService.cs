@@ -11,38 +11,29 @@ namespace OpenEvaluation.Service
     public class UserService
     {
         private EvaluateContext Db { get; set; }
+        private EventsService EventsService { get; set; }
 
-        public UserService(EvaluateContext context)
+        public UserService(EvaluateContext context, EventsService eventsService)
         {
             Db = context;
+            this.EventsService = eventsService;
         }
         public bool IsLogin { get; set; } = false;
         public User CurrentUser { get; set; }
 
-        string _userId;
-        public string UserId
-        {
-            get => _userId;
-            set
-            {
-                Regex regex = new Regex(@"^[A-Za-z0-9]+$");
-                if (regex.IsMatch(value))
-                {
-                    _userId = value;
-                }
-            }
-        }
+        public string UserId { get; set; }
 
         public string Password { get; set; }
 
         public void Login()
         {
 
-            User[] lgu = Db.Users.Where(u => u.UserId == UserId && u.Password == Md5.GetMd5(_userId + Password)).ToArray();
+            User[] lgu = Db.Users.Where(u => u.UserId == UserId && u.Password == Md5.GetMd5(UserId + Password)).ToArray();
             if (lgu.Length == 1)
             {
                 CurrentUser = lgu.First();
                 IsLogin = true;
+                EventsService.TriggerRenderActions();
             }
 
         }
