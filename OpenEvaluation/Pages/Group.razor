@@ -1,62 +1,65 @@
 ﻿@page "/group"
+@using Microsoft.EntityFrameworkCore
 
 
-@if (UserService.CurrentUser.Role == Role.Teacher || UserService.CurrentUser.Role == Role.Admin)
-{
+<AuthorizeView Roles="Teacher">
     <h3>Manage Groups</h3>
-}
 
-@if (UserService.CurrentUser.Role == Role.Student)
-{
+</AuthorizeView>
 
-    if (IsInGroup == true)
+
+<AuthorizeView Roles="Student">
+    @if (IsInGroup == true)
     {
-        <h3>My Group</h3>
-        <h4>Group name</h4>
-        <p class="text-body">@StudentGroup.GroupName</p>
-        <h4>Group members</h4>
-        <table class="table">
-            @foreach (var s in StudentGroup.Users)
-            {
+    <h3>My Group</h3>
+    <h4>Group name</h4>
+    <p class="text-body">@StudentGroup.GroupName</p>
+    <h4>Group members</h4>
+    <table class="table">
+        @foreach (var s in StudentGroup.Users)
+        {
+            <tr>
+                <td>@s.Name</td>
+            </tr>
+        }
+    </table>
+    }
+
+    @if (IsInGroup == false)
+    {
+    <h4>Create Group</h4>
+    <fieldset class="form-group">
+        <div class="form-group">
+            <label>Group name</label>
+            <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
+        </div>
+        <div class="form-group">
+            <table class="table">
                 <tr>
-                    <td>@s.Name</td>
+                    <th>Group members</th>
                 </tr>
-            }
-        </table>
+                @foreach (var s in StudentGroup.Users)
+                {
+                    <tr>
+                        <td>@s.Name</td>
+                    </tr>
+                }
+            </table>
+            <label>Classmate login id</label>
+            <input class="form-control" type="text" @bind="PendingAddUserId" />
+            <button type="submit" class="btn btn-primary" @onclick="GroupAddUser">Add member</button>
+        </div>
+        <button type="submit" class="btn btn-primary" @onclick="CreateGroup">Creat Group</button>
+    </fieldset>
     }
 
-    if (IsInGroup == false)
-    {
-        <h4>Create Group</h4>
-        <fieldset class="form-group">
-            <div class="form-group">
-                <label>Group name</label>
-                <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
-            </div>
-            <div class="form-group">
-                <table class="table">
-                    <tr>
-                        <th>Group members</th>
-                    </tr>
-                    @foreach (var s in StudentGroup.Users)
-                    {
-                        <tr>
-                            <td>@s.Name</td>
-                        </tr>
-                    }
-                </table>
-                <label>Classmate login id</label>
-                <input class="form-control" type="text" @bind="PendingAddUserId" />
-                <button type="submit" class="btn btn-primary" @onclick="GroupAddUser">Add member</button>
-            </div>
-            <button type="submit" class="btn btn-primary" @onclick="CreateGroup">Login</button>
-        </fieldset>
-    }
-}
+</AuthorizeView>
 
 <p class="text-warning">@Warning</p>
 
 @code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
 
     #region Student
 
@@ -64,25 +67,42 @@
 
     Data.Group StudentGroup { get; set; }
 
-    void CheckStudentInGroup()
+    async Task CheckStudentInGroup()
     {
-        var tempGroup = Db.Groups.Where(g => g.Users.Count(u => u.UserId == UserService.CurrentUser.UserId) != 0);
-        switch (tempGroup.Count())
+        var userc = (await authenticationStateTask).User;
+        if (!userc.Identity.IsAuthenticated)
         {
-            case 0:
-                IsInGroup = false;
-                StudentGroup = new Data.Group();
-                StudentGroup.GroupId = Guid.NewGuid().ToString();
-                StudentGroup.Users = new List<User>(new []{UserService.CurrentUser});
-                break;
-            case 1:
-                IsInGroup = true;
-                StudentGroup = tempGroup.FirstOrDefault();
-                break;
-            default:
-                Warning = "Please contact the administrator.";
-                break;
+            Navigation.NavigateTo("/",true);
+            return;
         }
+        if (!userc.IsInRole("Student"))
+        {
+            return;
+        }
+        var user = Db.Users.FirstOrDefault(u => u.UserId == userc.FindFirst("UserId").Value);
+        if (user == null)
+        {
+            Warning = "Please contact the administrator.";
+            this.StateHasChanged();
+            return;
+        }
+        var group = Db.Groups.Where(g => g.Users.Contains(user)).Include(g => g.Users).ToList();
+        if (group.Count == 0)
+        {
+            IsInGroup = false;
+            StudentGroup = new Data.Group
+            {
+                GroupId = Guid.NewGuid().ToString(),
+                Users = new List<User>(new[] {user})
+            };
+        }
+        else
+        {
+            IsInGroup = true;
+            StudentGroup = group.First();
+        }
+
+        this.StateHasChanged();
     }
 
     string PendingAddUserId { get; set; }
@@ -105,14 +125,15 @@
             return;
         }
         StudentGroup.Users.Add(user.FirstOrDefault());
+        PendingAddUserId = String.Empty;
     }
 
-    void CreateGroup()
+    async Task CreateGroup()
     {
         Db.Groups.Add(StudentGroup);
         Db.SaveChanges();
-        CheckStudentInGroup();
-        this.StateHasChanged();
+        await CheckStudentInGroup();
+        return;
     }
 
     #endregion
@@ -125,24 +146,10 @@
 
     string Warning { get; set; }
 
-    protected override void OnAfterRender(bool firstRender)
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (UserService.IsLogin == false)
-        {
-            Navigation.NavigateTo("/", true);
-        }
-
-        base.OnAfterRender(firstRender);
-    }
-
-    protected override void OnInitialized()
-    {
-        if (UserService.CurrentUser.Role == Role.Student)
-        {
-            CheckStudentInGroup();
-            this.StateHasChanged();
-        }
-        base.OnInitialized();
+        await CheckStudentInGroup();
+        await base.OnAfterRenderAsync(firstRender);
     }
 
 }

@@ -1,6 +1,4 @@
-﻿@inject EventsService Events
-
-<div class="top-row pl-4 navbar navbar-dark">
+﻿<div class="top-row pl-4 navbar navbar-dark">
     <a class="navbar-brand" href="">Open Evaluation System</a>
     <button class="navbar-toggler" @onclick="ToggleNavMenu">
         <span class="navbar-toggler-icon"></span>
@@ -14,15 +12,17 @@
                 <span class="oi oi-home" aria-hidden="true"></span> Home
             </NavLink>
         </li>
-        @if (UserService.IsLogin)
-        {
-            <li class="nav-item px-3">
-                <NavLink class="nav-link" href="group">
-                    <span class="oi oi-grid-three-up" aria-hidden="true"></span> Group
-                </NavLink>
-            </li>
-        }
         
+        <AuthorizeView>
+            <Authorized>
+                <li class="nav-item px-3">
+                    <NavLink class="nav-link" href="group">
+                        <span class="oi oi-grid-three-up" aria-hidden="true"></span> Group
+                    </NavLink>
+                </li>
+            </Authorized>
+        </AuthorizeView>
+
     </ul>
 </div>
 
@@ -34,12 +34,6 @@
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
-    }
-
-    protected override void OnInitialized()
-    {
-        Events.AddRenderAction(StateHasChanged);
-        base.OnInitialized();
     }
 
 }

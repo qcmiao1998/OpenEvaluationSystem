@@ -2,15 +2,17 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenEvaluation.Data;
 
 namespace OpenEvaluation.Migrations
 {
     [DbContext(typeof(EvaluateContext))]
-    partial class EvaluateContextModelSnapshot : ModelSnapshot
+    [Migration("20200414122909_ChangeToListAndAddGroupToUser")]
+    partial class ChangeToListAndAddGroupToUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
