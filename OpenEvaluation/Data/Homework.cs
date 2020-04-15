@@ -8,21 +8,23 @@ namespace OpenEvaluation.Data
     public class Homework
     {
         public string HomeworkId { get; set; }
+        public string HomeworkName { get; set; }
+        public string Description { get; set; }
         public User Owner { get; set; }
         public HomeworkType Type { get; set; }
-        public List<HomeworkScoreItem> ScoreItems { get; set; }
-        public List<HomeworkSubmit> Submits { get; set; }
+        public DateTime Deadline { get; set; }
+        public List<HomeworkScoreItem> ScoreItems { get; set; } = new List<HomeworkScoreItem>();
+        public List<HomeworkSubmit> Submits { get; set; } = new List<HomeworkSubmit>();
     }
 
     public class HomeworkSubmit
     {
         public string HomeworkSubmitId { get; set; }
         public HomeworkType SubmitType { get; set; }
-        public HomeworkType ScoreType { get; set; }
         public User SubmitterUser { get; set; }
         public Group SubmitterGroup { get; set; }
         public HomeworkContent Content { get; set; }
-        public List<HomeworkScore> Scores { get; set; }
+        public List<HomeworkScore> Scores { get; set; } = new List<HomeworkScore>();
         public Homework Homework { get; set; }
     }
 

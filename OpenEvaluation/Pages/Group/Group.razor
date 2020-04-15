@@ -1,59 +1,66 @@
 ﻿@page "/group"
 @using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Roles = "Student")]
 
 
-<AuthorizeView Roles="Teacher, Admin">
-    <h3>Manage Groups</h3>
-
-</AuthorizeView>
-
-
-<AuthorizeView Roles="Student">
-    @if (IsInGroup == true)
-    {
-    <h3>My Group</h3>
-    <h4>Group name</h4>
-    <p class="text-body">@StudentGroup.GroupName</p>
-    <h4>Group members</h4>
-    <table class="table">
+@if (IsInGroup == true)
+{
+<h3>My Group</h3>
+<h4>Group name</h4>
+<p class="text-body">@StudentGroup.GroupName</p>
+<h4>Group members</h4>
+<table class="table">
+    <tbody>
         @foreach (var s in StudentGroup.Users)
         {
             <tr>
                 <td>@s.Name</td>
             </tr>
         }
-    </table>
-    }
+    </tbody>
+</table>
+}
 
-    @if (IsInGroup == false)
-    {
+@if (IsInGroup == false)
+{
     <h4>Create Group</h4>
-    <fieldset class="form-group">
-        <div class="form-group">
-            <label>Group name</label>
-            <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
-        </div>
-        <div class="form-group">
-            <table class="table">
-                <tr>
-                    <th>Group members</th>
-                </tr>
-                @foreach (var s in StudentGroup.Users)
-                {
-                    <tr>
-                        <td>@s.Name</td>
-                    </tr>
-                }
-            </table>
-            <label>Classmate login id</label>
-            <input class="form-control" type="text" @bind="PendingAddUserId" />
-            <button type="submit" class="btn btn-primary" @onclick="GroupAddUser">Add member</button>
-        </div>
-        <button type="submit" class="btn btn-primary" @onclick="CreateGroup">Creat Group</button>
-    </fieldset>
-    }
+    <div class="card">
+        <fieldset class="form-group card-body">
+            <div class="form-group">
+                <label>Group name</label>
+                <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
+            </div>
+            <div class="card">
+                <div class="form-group card-body">
+                    <label class="font-weight-bold">Group members</label>
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>UserId</th>
+                            <th>Name</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @foreach (var s in StudentGroup.Users)
+                        {
+                            <tr>
+                                <td>@s.UserId</td>
+                                <td>@s.Name</td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                    <label>Classmate UserId</label>
+                    <input class="form-control" type="text" @bind="PendingAddUserId"/>
+                    <button type="submit" class="btn btn-primary" @onclick="GroupAddUser">Add member</button>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary" @onclick="CreateGroup">Creat Group</button>
+        </fieldset>
+    </div>
 
-</AuthorizeView>
+}
+
 
 <p class="text-warning">@Warning</p>
 
@@ -61,7 +68,6 @@
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
 
-    #region Student
 
     bool? IsInGroup { get; set; } = null;
 
@@ -70,15 +76,6 @@
     async Task CheckStudentInGroup()
     {
         var userc = (await authenticationStateTask).User;
-        if (!userc.Identity.IsAuthenticated)
-        {
-            Navigation.NavigateTo("/",true);
-            return;
-        }
-        if (!userc.IsInRole("Student"))
-        {
-            return;
-        }
         var user = Db.Users.FirstOrDefault(u => u.UserId == userc.FindFirst("UserId").Value);
         if (user == null)
         {
@@ -136,13 +133,6 @@
         return;
     }
 
-    #endregion
-
-    #region Teacher
-
-
-
-    #endregion
 
     string Warning { get; set; }
 

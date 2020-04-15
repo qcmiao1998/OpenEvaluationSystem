@@ -1,0 +1,143 @@
+﻿@page "/homeworks"
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Roles = "Teacher")]
+
+<h3>Manage Homework</h3>
+
+<table class="table table-hover">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Teacher</th>
+            <th>Deadline</th>
+            <th>Submits</th>
+            <th>Description</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var h in allHomework)
+        {
+            <tr @onclick="@(() => Navigation.NavigateTo($"/homeworks/{h.HomeworkId}"))">
+                <td>@h.HomeworkName</td>
+                <td>@h.Type.ToString()</td>
+                <td>@h.Owner.Name</td>
+                <td>@h.Deadline.ToString()</td>
+                <td>@h.Submits.Count</td>
+                <td>@h.Description</td>
+            </tr>
+        }
+    </tbody>
+    
+</table>
+
+<h3>Create new homework</h3>
+
+<div class="card">
+    <fieldset class="form-group card-body">
+        <div class="form-group">
+            <label>Homework name</label>
+            <input class="form-control" type="text" required="required" @bind="newHomework.HomeworkName" />
+        </div>
+        <div class="form-group">
+            <label>Type</label>
+            <select class="custom-select" @bind="@newHomework.Type">
+                <option value="@(Data.HomeworkType.Single)">Single</option>
+                <option value="@(Data.HomeworkType.Group)">Group</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Deadline</label>
+            <MatDatePicker class="form-control" @bind-Value="newHomework.Deadline" EnableTime="true" />
+        </div>
+        <div class="form-group">
+            <label>Description</label>
+            <input class="form-control" type="text" @bind="newHomework.Description" />
+        </div>
+        <div class="form-group">
+            <label class="font-weight-bold">Score items</label>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th>Minimum</th>
+                        <th>Maximum</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in newHomework.ScoreItems)
+                    {
+                        <tr>
+                            <td>@s.Description</td>
+                            <td>@s.MinScore</td>
+                            <td>@s.MaxScore</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="card">
+                <div class="card-body">
+                    <div class="form-group">
+                        <label>Description</label>
+                        <input class="form-control" type="text" @bind="newHomeworkScoreItem.Description" />
+                    </div>
+                    <div class="form-group">
+                        <label>Minimum</label>
+                        <input class="form-control" type="number" @bind="newHomeworkScoreItem.MinScore" />
+                    </div>
+                    <div class="form-group">
+                        <label>Maximum</label>
+                        <input class="form-control" type="number" @bind="newHomeworkScoreItem.MaxScore" />
+                    </div>
+                    <button type="submit" class="btn btn-primary" @onclick="AddScoreItem">Add score item</button>
+                </div>
+            </div>
+            
+        </div>
+        <button type="submit" class="btn btn-primary" @onclick="CreateHomework">Creat homework</button>
+        <button type="reset" class="btn btn-primary" @onclick="ResetHomework">Reset</button>
+    </fieldset>
+</div>
+
+
+@code {
+    IEnumerable<Data.Homework> allHomework;
+
+    Data.Homework newHomework = new Data.Homework();
+    Data.HomeworkScoreItem newHomeworkScoreItem = new HomeworkScoreItem();
+
+    void AddScoreItem()
+    {
+        newHomeworkScoreItem.HomeworkScoreItemId = Guid.NewGuid().ToString();
+        newHomework.ScoreItems.Add(newHomeworkScoreItem);
+        newHomeworkScoreItem = new HomeworkScoreItem();
+    }
+
+    async Task CreateHomework()
+    {
+        newHomework.HomeworkId = Guid.NewGuid().ToString();
+        var userc = (await authenticationStateTask).User;
+        var teacher = Db.Users.FirstOrDefault( u => u.UserId == userc.FindFirst("UserId").Value);
+        newHomework.Owner = teacher;
+        Db.Homeworks.Add(newHomework);
+        await Db.SaveChangesAsync();
+        newHomework = new Data.Homework();
+        this.StateHasChanged();
+    }
+
+    void ResetHomework()
+    {
+        newHomework = new Data.Homework();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hws = Db.Homeworks.OrderBy(h => h.Deadline).Include(h => h.Submits).Include(h => h.Owner).ToList();
+        allHomework = hws;
+
+        await base.OnInitializedAsync();
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+}

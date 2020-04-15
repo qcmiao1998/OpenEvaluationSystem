@@ -1,0 +1,28 @@
+﻿@page "/homeworks/{HomeworkId}"
+@using Microsoft.EntityFrameworkCore
+@attribute [Authorize(Roles = "Teacher")]
+
+<h3>@homework.HomeworkName</h3>
+
+@code {
+    [Parameter]
+    public string HomeworkId { get; set; }
+
+    Data.Homework homework;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hw = Db.Homeworks.Where(h => h.HomeworkId == HomeworkId).Include(h => h.Submits).Include(h => h.ScoreItems).ToList();
+        if (hw.Count != 1)
+        {
+            Navigation.NavigateTo("/homeworks", true);
+            return;
+        }
+
+        homework = hw.First();
+        await base.OnInitializedAsync();
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+}
