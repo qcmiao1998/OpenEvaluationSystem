@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.ProtectedBrowserStorage;
+using Blazored.Toast.Services;
 
 namespace OpenEvaluation.Service
 {
@@ -12,11 +13,13 @@ namespace OpenEvaluation.Service
     {
         private readonly EvaluateContext _db;
         private readonly ProtectedSessionStorage _storage;
+        private readonly IToastService _toastService;
 
-        public AuthenticationService(EvaluateContext dbContext, ProtectedSessionStorage storage)
+        public AuthenticationService(EvaluateContext dbContext, ProtectedSessionStorage storage, IToastService toastService)
         {
             _db = dbContext;
             _storage = storage;
+            _toastService = toastService;
         }
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
@@ -56,7 +59,7 @@ namespace OpenEvaluation.Service
                     new Claim("UserId", user.UserId),
                     new Claim(ClaimTypes.Role,user.Role.ToString()),
                     new Claim(ClaimTypes.Name,user.Name),
-                }, "Session");
+                }, "Login Page");
 
                 _storage.SetAsync("UserId", user.UserId);
                 _storage.SetAsync("Name", user.Name);
@@ -65,6 +68,10 @@ namespace OpenEvaluation.Service
                 var claims = new ClaimsPrincipal(identity);
 
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claims)));
+            }
+            else
+            {
+                _toastService.ShowError("Incorrect username or password", "Login failed");
             }
 
         }

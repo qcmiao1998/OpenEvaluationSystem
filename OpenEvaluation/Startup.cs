@@ -1,3 +1,4 @@
+using Blazored.Toast;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Hosting;
@@ -29,7 +30,7 @@ namespace OpenEvaluation
                 options.UseSqlServer(Configuration.GetConnectionString("OpenEvaluationDb")));
             services.AddProtectedBrowserStorage();
             services.AddScoped<AuthenticationStateProvider, AuthenticationService>();
-            
+            services.AddBlazoredToast();
 
         }
 
