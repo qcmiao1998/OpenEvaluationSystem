@@ -2,9 +2,9 @@ name: Blazor
 
 on:
   push:
-    branches: [ blazor ]
+    branches: [ master ]
   pull_request:
-    branches: [ blazor ]
+    branches: [ master ]
 
 jobs:
   build:
