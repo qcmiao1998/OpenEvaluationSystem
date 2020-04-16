@@ -14,36 +14,41 @@ namespace OpenEvaluation.Data
         public HomeworkType Type { get; set; }
         public DateTime Deadline { get; set; }
         public List<HomeworkScoreItem> ScoreItems { get; set; } = new List<HomeworkScoreItem>();
-        public List<HomeworkSubmit> Submits { get; set; } = new List<HomeworkSubmit>();
+        public List<HomeworkSubmission> Submits { get; set; } = new List<HomeworkSubmission>();
     }
 
-    public class HomeworkSubmit
+    public class HomeworkSubmission
     {
-        public string HomeworkSubmitId { get; set; }
-        public HomeworkType SubmitType { get; set; }
-        public User SubmitterUser { get; set; }
-        public Group SubmitterGroup { get; set; }
-        public HomeworkContent Content { get; set; }
+        public string HomeworkSubmissionId { get; set; }
+        public User SubmitUser { get; set; }
+        public Group SubmitGroup { get; set; }
+        public HomeworkSubmissionType Type { get; set; }
+        public string Content { get; set; }
+        public DateTime SubmitTime { get; set; }
         public List<HomeworkScore> Scores { get; set; } = new List<HomeworkScore>();
         public Homework Homework { get; set; }
     }
 
-    public class HomeworkContent
+    public enum HomeworkSubmissionType
     {
-        public string HomeworkContentId { get; set; }
-        public string Type { get; set; }
-        public string Content { get; set; }
+        Other,
+        bilibili
     }
 
     public class HomeworkScore
     {
         public string HomeworkScoreId { get; set; }
-        public HomeworkType Type { get; set; }
         public User SubmitterUser { get; set; }
-        public Group SubmitterGroup { get; set; }
-        public HomeworkScoreItem ScoreItem { get; set; }
-        public double Score { get; set; }
-        public HomeworkSubmit HomeworkSubmit { get; set; }
+        public List<SubScore> Scores { get; set; } = new List<SubScore>();
+        public HomeworkSubmission HomeworkSubmission { get; set; }
+
+        public class SubScore
+        {
+            public string SubScoreId { get; set; }
+            public HomeworkScoreItem ScoreItem { get; set; }
+            public double Score { get; set; }
+            public HomeworkScore HomeworkScore { get; set; }
+        }
     }
 
     public class HomeworkScoreItem

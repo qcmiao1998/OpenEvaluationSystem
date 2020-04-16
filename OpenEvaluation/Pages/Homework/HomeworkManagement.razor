@@ -4,32 +4,34 @@
 
 <h3>Manage Homework</h3>
 
-<table class="table table-hover">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Teacher</th>
-            <th>Deadline</th>
-            <th>Submits</th>
-            <th>Description</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var h in allHomework)
-        {
-            <tr @onclick="@(() => Navigation.NavigateTo($"/homeworks/{h.HomeworkId}"))">
-                <td>@h.HomeworkName</td>
-                <td>@h.Type.ToString()</td>
-                <td>@h.Owner.Name</td>
-                <td>@h.Deadline.ToString()</td>
-                <td>@h.Submits.Count</td>
-                <td>@h.Description</td>
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Teacher</th>
+                <th>Deadline</th>
+                <th>Submits</th>
+                <th>Description</th>
             </tr>
-        }
-    </tbody>
-    
-</table>
+        </thead>
+        <tbody>
+            @foreach (var h in allHomework)
+            {
+                <tr @onclick="@(() => Navigation.NavigateTo($"/homeworks/{h.HomeworkId}"))">
+                    <td>@h.HomeworkName</td>
+                    <td>@h.Type.ToString()</td>
+                    <td>@h.Owner.Name</td>
+                    <td>@h.Deadline.ToString()</td>
+                    <td>@h.Submits.Count</td>
+                    <td>@h.Description</td>
+                </tr>
+            }
+        </tbody>
+
+    </table>
+</div>
 
 <h3>Create new homework</h3>
 

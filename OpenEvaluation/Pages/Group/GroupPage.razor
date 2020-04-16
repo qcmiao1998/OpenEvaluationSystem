@@ -30,7 +30,7 @@
                 <label>Group name</label>
                 <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
             </div>
-            <div class="card">
+            <div class="form-group card">
                 <div class="form-group card-body">
                     <label class="font-weight-bold">Group members</label>
                     <table class="table">
@@ -50,8 +50,10 @@
                         }
                         </tbody>
                     </table>
-                    <label>Classmate UserId</label>
-                    <input class="form-control" type="text" @bind="PendingAddUserId"/>
+                    <div class="form-group">
+                        <label>Classmate UserId</label>
+                        <input class="form-control" type="text" @bind="PendingAddUserId"/>
+                    </div>
                     <button type="submit" class="btn btn-primary" @onclick="GroupAddUser">Add member</button>
                 </div>
             </div>
@@ -60,9 +62,6 @@
     </div>
 
 }
-
-
-<p class="text-warning">@Warning</p>
 
 @code {
     [CascadingParameter]
@@ -76,15 +75,9 @@
     async Task CheckStudentInGroup()
     {
         var userc = (await authenticationStateTask).User;
-        var user = Db.Users.FirstOrDefault(u => u.UserId == userc.FindFirst("UserId").Value);
-        if (user == null)
-        {
-            Warning = "Please contact the administrator.";
-            this.StateHasChanged();
-            return;
-        }
-        var group = Db.Groups.Where(g => g.Users.Contains(user)).Include(g => g.Users).ToList();
-        if (group.Count == 0)
+        var user = Db.Users.First(u => u.UserId == userc.FindFirst("UserId").Value);
+        var group = Db.Groups.Where(g => g.Users.Contains(user)).Include(g => g.Users).FirstOrDefault();
+        if (group == null)
         {
             IsInGroup = false;
             StudentGroup = new Data.Group
@@ -96,7 +89,7 @@
         else
         {
             IsInGroup = true;
-            StudentGroup = group.First();
+            StudentGroup = group;
         }
 
         this.StateHasChanged();
@@ -108,17 +101,17 @@
         var user = Db.Users.Where(u => u.UserId == PendingAddUserId);
         if (!user.Any())
         {
-            Warning = $"User {PendingAddUserId} not found.";
+            ToastService.ShowWarning($"User {PendingAddUserId} not found.", "Add Failed");
             return;
         }
-        if (Db.Groups.Any(g=> g.Users.Any(u => u.UserId == user.FirstOrDefault().UserId)))
+        if (Db.Groups.Any(g=> g.Users.Any(u => u == user.FirstOrDefault())))
         {
-            Warning = "The user has been in a group.";
+            ToastService.ShowWarning("The user has been in a group.","Add Failed");
             return;
         }
         if (StudentGroup.Users.Any(u => u.UserId == PendingAddUserId))
         {
-            Warning = "The user has been added.";
+            ToastService.ShowWarning("The user has been added.", "Add Failed");
             return;
         }
         StudentGroup.Users.Add(user.FirstOrDefault());
@@ -132,9 +125,6 @@
         await CheckStudentInGroup();
         return;
     }
-
-
-    string Warning { get; set; }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {

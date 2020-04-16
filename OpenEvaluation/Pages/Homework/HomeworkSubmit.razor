@@ -1,0 +1,183 @@
+﻿@page "/homework/{HomeworkId}"
+@using System.Globalization
+@attribute [Authorize(Roles = "Student")]
+
+<h3>Homework</h3>
+
+@if (_homework == null)
+{
+    <p class="text-body">No homework "@HomeworkId" found.</p>
+}
+else if (_homework.Type == HomeworkType.Group && _group == null)
+{
+    <NavLink class="nav-link" href="group">It is a group homework. Create a group first.</NavLink>
+}
+else
+{
+    <div class="container-fluid">
+        <table class="table">
+            <tbody>
+                <tr>
+                    <th>Name</th>
+                    <td>@_homework.HomeworkName</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>@_homework.Type</td>
+                </tr>
+                <tr>
+                    <th>Teacher</th>
+                    <td>@_homework.Owner.Name</td>
+                </tr>
+                <tr>
+                    <th>Deadline</th>
+                    <td>@_homework.Deadline.ToString(CultureInfo.CurrentCulture)</td>
+                </tr>
+                <tr>
+                    <th>Description</th>
+                    <td>@_homework.Description</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    if (_hasSubmission)
+    {
+        <h4>My Submission</h4>
+        <div class="container-fluid">
+            <table class="table">
+                <tbody>
+                @if(_homework.Type == HomeworkType.Group)
+                {
+                    <tr>
+                        <th>Submit member</th>
+                        <td>@_homeworkSubmission.SubmitUser.Name</td>
+                    </tr>
+                }
+                <tr>
+                    <th>Submit time</th>
+                    <td>@_homeworkSubmission.SubmitTime.ToString(CultureInfo.CurrentCulture)</td>
+                </tr>
+                <tr>
+                    <th>Content</th>
+                    <td><SubmissionViewer Submission="@_homeworkSubmission" /></td>
+                </tr>
+                <tr>
+                    <th>Average score</th>
+                    @if (_homeworkSubmission.Scores.Count == 0)
+                    {
+                        <td>NO SCORE NOW</td>
+                    }
+                    else
+                    {
+                        <td>@_homeworkSubmission.Scores.Average(s=>s.Scores.Sum(ss => ss.Score))</td>
+                    }
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <h4>Evaluate others' submission</h4>
+
+    }
+    else if (_homework.Deadline < DateTime.Now)
+    {
+        <h4>Create new submission</h4>
+        <p class="text-warning">Deadline exceeded.</p>
+    }
+    else
+    {
+        <h4>Create new submission</h4>
+        <div class="form-group">
+            <fieldset class="form-group">
+                <div class="form-group">
+                    <label>Type</label>
+                    <select class="custom-select" @bind="@_homeworkSubmission.Type">
+                        <option value="@(Data.HomeworkSubmissionType.bilibili)">bilibili</option>
+                        <option value="@(Data.HomeworkSubmissionType.Other)">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Content</label>
+                    <input class="form-control" type="text" @bind="_homeworkSubmission.Content" />
+                    @if (_homeworkSubmission.Type == HomeworkSubmissionType.bilibili)
+                    {
+                        <p class="text-info">When choose bilibili, just input BV number.</p>
+                    }
+                </div>
+                <button type="submit" class="btn btn-primary" @onclick="SubmitHomework">Submit</button>
+            </fieldset>
+        </div>
+    }
+}
+
+
+
+@code {
+
+    User _user;
+
+    Group _group;
+
+    Data.Homework _homework;
+
+    Data.HomeworkSubmission _homeworkSubmission;
+
+    bool _hasSubmission = false;
+
+    void SubmitHomework()
+    {
+        _homeworkSubmission.HomeworkSubmissionId = Guid.NewGuid().ToString();
+        _homeworkSubmission.Homework = _homework;
+        _homeworkSubmission.SubmitUser = _user;
+        _homeworkSubmission.SubmitGroup = _group;
+        _homeworkSubmission.SubmitTime = DateTime.Now;
+        Db.HomeworkSubmits.Add(_homeworkSubmission);
+        Db.SaveChangesAsync();
+        _hasSubmission = true;
+        ToastService.ShowSuccess($"SubmitID: {_homeworkSubmission.HomeworkSubmissionId}","Submit success");
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var userc = (await authenticationStateTask).User;
+        _user = Db.Users.Include(u => u.Group).Single(u => u.UserId == userc.FindFirst("UserId").Value);
+        if (_user.Group != null)
+        {
+            _group = _user.Group;
+        }
+        _homework = Db.Homeworks.Include(h => h.Owner).SingleOrDefault(h => h.HomeworkId == HomeworkId);
+        if (_homework != null)
+        {
+            if (_homework.Type == HomeworkType.Single)
+            {
+                var stuId = (await authenticationStateTask).User.FindFirst("UserId").Value;
+                _homeworkSubmission = Db.HomeworkSubmits.SingleOrDefault(s => s.Homework == _homework && s.SubmitUser == _user);
+            }
+            else
+            {
+                var stuId = (await authenticationStateTask).User.FindFirst("UserId").Value;
+                if (_group != null)
+                {
+                    _homeworkSubmission = Db.HomeworkSubmits.Include(s => s.SubmitUser).Include(s=>s.Scores).ThenInclude(s => s.Scores).SingleOrDefault(s => s.Homework == _homework && s.SubmitGroup == _group);
+                }
+
+            }
+            if (_homeworkSubmission != null)
+            {
+                _hasSubmission = true;
+            }
+            else
+            {
+                _homeworkSubmission = new HomeworkSubmission();
+            }
+        }
+        await base.OnInitializedAsync();
+    }
+
+    [Parameter]
+    public string HomeworkId { get; set; }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+}

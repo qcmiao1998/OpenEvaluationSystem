@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenEvaluation.Data;
 
 namespace OpenEvaluation.Migrations
 {
     [DbContext(typeof(EvaluateContext))]
-    partial class EvaluateContextModelSnapshot : ModelSnapshot
+    [Migration("20200416125607_RefactorHomeworkSubmission")]
+    partial class RefactorHomeworkSubmission
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -137,13 +139,13 @@ namespace OpenEvaluation.Migrations
                     b.Property<string>("HomeworkId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("SubmitGroupGroupId")
+                    b.Property<int>("SubmitType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SubmitterGroupGroupId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<DateTime>("SubmitTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("SubmitUserUserId")
+                    b.Property<string>("SubmitterUserUserId")
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<int>("Type")
@@ -153,9 +155,9 @@ namespace OpenEvaluation.Migrations
 
                     b.HasIndex("HomeworkId");
 
-                    b.HasIndex("SubmitGroupGroupId");
+                    b.HasIndex("SubmitterGroupGroupId");
 
-                    b.HasIndex("SubmitUserUserId");
+                    b.HasIndex("SubmitterUserUserId");
 
                     b.ToTable("HomeworkSubmits");
                 });
@@ -226,13 +228,13 @@ namespace OpenEvaluation.Migrations
                         .WithMany("Submits")
                         .HasForeignKey("HomeworkId");
 
-                    b.HasOne("OpenEvaluation.Data.Group", "SubmitGroup")
+                    b.HasOne("OpenEvaluation.Data.Group", "SubmitterGroup")
                         .WithMany()
-                        .HasForeignKey("SubmitGroupGroupId");
+                        .HasForeignKey("SubmitterGroupGroupId");
 
-                    b.HasOne("OpenEvaluation.Data.User", "SubmitUser")
+                    b.HasOne("OpenEvaluation.Data.User", "SubmitterUser")
                         .WithMany()
-                        .HasForeignKey("SubmitUserUserId");
+                        .HasForeignKey("SubmitterUserUserId");
                 });
 
             modelBuilder.Entity("OpenEvaluation.Data.User", b =>

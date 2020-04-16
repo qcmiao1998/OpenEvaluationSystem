@@ -1,0 +1,15 @@
+﻿@if (Submission.Type == HomeworkSubmissionType.bilibili)
+{
+    <div class="bilibili">
+        <iframe src="//player.bilibili.com/player.html?bvid=@Submission.Content&page=1&high_quality=1" scrolling="no" border="0" frameborder="no" framespacing="0" allowfullscreen="true"> </iframe>
+    </div>
+}
+else
+{
+    <p class="text-body">@Submission.Content</p>
+}
+
+@code {
+    [Parameter]
+    public Data.HomeworkSubmission Submission { get; set; }
+}

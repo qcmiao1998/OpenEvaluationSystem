@@ -1,0 +1,90 @@
+﻿@page "/homework"
+@using System.Globalization
+@attribute [Authorize(Roles = "Student")]
+
+<h3>Homework</h3>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Submit</th>
+                <th>Name</th>
+                <th>Type</th>
+                <th>Deadline</th>
+                <th>Teacher</th>
+                <th>Description</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var h in allHomework)
+        {
+            <tr @onclick="@(() =>
+                          {
+                              Navigation.NavigateTo($"/homework/{h.HomeworkObject.HomeworkId}");
+                          })">
+                @if (h.IsSubmitted)
+                {
+                    <td><span class="oi oi-check text-success"></span></td>
+                }
+                else
+                {
+                    <td><span class="oi oi-x text-danger"></span></td>
+                }
+                <td>@h.HomeworkObject.HomeworkName</td>
+                <td>@h.HomeworkObject.Type.ToString()</td>
+                <td>@h.HomeworkObject.Deadline.ToString(CultureInfo.CurrentCulture)</td>
+                <td>@h.HomeworkObject.Owner.Name</td>
+                <td>@h.HomeworkObject.Description</td>
+            </tr>
+        }
+        </tbody>
+
+    </table>
+</div>
+
+
+@code {
+
+    List<HomeworkInfo> allHomework;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var hws = Db.Homeworks.OrderBy(h => h.Deadline).Include(h => h.Owner).ToList();
+
+        allHomework = new List<HomeworkInfo>();
+        foreach (var homework in hws)
+        {
+            HomeworkInfo homeworkInfo = new HomeworkInfo {HomeworkObject = homework};
+            if (homework.Type == HomeworkType.Single)
+            {
+                var stuId = (await authenticationStateTask).User.FindFirst("UserId").Value;
+                var stu = Db.Users.Single(u => u.UserId == stuId);
+                homeworkInfo.IsSubmitted = Db.HomeworkSubmits.Any(s => s.Homework == homework && s.SubmitUser == stu);
+            }
+            else
+            {
+                var stuId = (await authenticationStateTask).User.FindFirst("UserId").Value;
+                var user = Db.Users.Include(u => u.Group).Single(u => u.UserId == stuId);
+                if (user.Group != null)
+                {
+                    homeworkInfo.IsSubmitted = Db.HomeworkSubmits.Any(s => s.Homework == homework && s.SubmitGroup == user.Group);
+                }
+
+            }
+            allHomework.Add(homeworkInfo);
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    class HomeworkInfo
+    {
+        public Data.Homework HomeworkObject { get; set; }
+        public bool IsSubmitted { get; set; } = false;
+
+    }
+}

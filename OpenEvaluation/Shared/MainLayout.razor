@@ -9,7 +9,7 @@
     <div class="top-row px-4">
         <AuthorizeView>
             <Authorized>
-                <a herf="/" @onclick="() => ((AuthenticationService)Authentication).Logout()">Logout</a>
+                <a class="nav-link" @onclick="Logout">Logout</a>
             </Authorized>
         </AuthorizeView>
     </div>
@@ -20,3 +20,12 @@
 </div>
 
 <BlazoredToasts />
+
+@code
+{
+    void Logout()
+    {
+        ((AuthenticationService) Authentication).Logout();
+        Navigation.NavigateTo("/",true);
+    }
+}
