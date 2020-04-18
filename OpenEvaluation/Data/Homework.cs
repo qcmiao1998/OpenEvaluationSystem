@@ -38,8 +38,9 @@ namespace OpenEvaluation.Data
     public class HomeworkScore
     {
         public string HomeworkScoreId { get; set; }
-        public User SubmitterUser { get; set; }
+        public User EvaluateUser { get; set; }
         public List<SubScore> Scores { get; set; } = new List<SubScore>();
+        public Homework Homework { get; set; }
         public HomeworkSubmission HomeworkSubmission { get; set; }
 
         public class SubScore

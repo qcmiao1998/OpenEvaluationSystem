@@ -3,15 +3,17 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using OpenEvaluation.Data;
 
 namespace OpenEvaluation.Migrations
 {
     [DbContext(typeof(EvaluateContext))]
-    partial class EvaluateContextModelSnapshot : ModelSnapshot
+    [Migration("20200417075217_ModifyScore")]
+    partial class ModifyScore
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -67,17 +69,12 @@ namespace OpenEvaluation.Migrations
                     b.Property<string>("EvaluateUserUserId")
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("HomeworkId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("HomeworkSubmissionId")
                         .HasColumnType("nvarchar(450)");
 
                     b.HasKey("HomeworkScoreId");
 
                     b.HasIndex("EvaluateUserUserId");
-
-                    b.HasIndex("HomeworkId");
 
                     b.HasIndex("HomeworkSubmissionId");
 
@@ -201,10 +198,6 @@ namespace OpenEvaluation.Migrations
                     b.HasOne("OpenEvaluation.Data.User", "EvaluateUser")
                         .WithMany()
                         .HasForeignKey("EvaluateUserUserId");
-
-                    b.HasOne("OpenEvaluation.Data.Homework", "Homework")
-                        .WithMany()
-                        .HasForeignKey("HomeworkId");
 
                     b.HasOne("OpenEvaluation.Data.HomeworkSubmission", "HomeworkSubmission")
                         .WithMany("Scores")

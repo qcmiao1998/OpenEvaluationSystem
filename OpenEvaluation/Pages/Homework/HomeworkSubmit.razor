@@ -47,38 +47,158 @@ else
         <div class="container-fluid">
             <table class="table">
                 <tbody>
-                @if(_homework.Type == HomeworkType.Group)
-                {
+                    @if (_homework.Type == HomeworkType.Group)
+                    {
+                        <tr>
+                            <th>Submit member</th>
+                            <td>@_myHomeworkSubmission.SubmitUser.Name</td>
+                        </tr>
+                    }
                     <tr>
-                        <th>Submit member</th>
-                        <td>@_homeworkSubmission.SubmitUser.Name</td>
+                        <th>Submit time</th>
+                        <td>@_myHomeworkSubmission.SubmitTime.ToString(CultureInfo.CurrentCulture)</td>
                     </tr>
-                }
-                <tr>
-                    <th>Submit time</th>
-                    <td>@_homeworkSubmission.SubmitTime.ToString(CultureInfo.CurrentCulture)</td>
-                </tr>
-                <tr>
-                    <th>Content</th>
-                    <td><SubmissionViewer Submission="@_homeworkSubmission" /></td>
-                </tr>
-                <tr>
-                    <th>Average score</th>
-                    @if (_homeworkSubmission.Scores.Count == 0)
-                    {
-                        <td>NO SCORE NOW</td>
-                    }
-                    else
-                    {
-                        <td>@_homeworkSubmission.Scores.Average(s=>s.Scores.Sum(ss => ss.Score))</td>
-                    }
-                </tr>
+                    <tr>
+                        <th>Content</th>
+                        <td>
+                            @if (_myHomeworkSubmission.Type == HomeworkSubmissionType.bilibili)
+                            {
+                            <a href="https://www.bilibili.com/video/@_myHomeworkSubmission.Content" target="_blank">@_myHomeworkSubmission.Content</a>
+                            }
+                            else
+                            {
+                                <p class="text-body">@_myHomeworkSubmission.Content</p>
+                            }
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>Average score</th>
+                        @if (_myHomeworkScores.Count == 0)
+                        {
+                            <td>NO SCORE NOW</td>
+                        }
+                        else
+                        {
+                            <td>@_myHomeworkSubmission.Scores.Average(s => s.Scores.Sum(ss => ss.Score)) (@_myHomeworkSubmission.Scores.Count)</td>
+                        }
+                    </tr>
                 </tbody>
             </table>
         </div>
-        
-        <h4>Evaluate others' submission</h4>
 
+        <h4>Evaluate others' submission</h4>
+        if (_othersHomeworkScores.Count == 0)
+        {
+            <div class="progress">
+                <div class="progress-bar" style="width: 100%;">
+                    NO OTHER SUBMISSION
+                </div>
+            </div>
+        }
+        else
+        {
+            int allHomeworkCount = _othersHomeworkScores.Count;
+            int scoredCount = _othersHomeworkScores.Values.Count(s => !string.IsNullOrEmpty(s.HomeworkScoreId));
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" style="width: @(((double)scoredCount / (double)allHomeworkCount).ToString("P"));">
+                    @scoredCount/@allHomeworkCount
+                </div>
+            </div>
+            <br>
+            <MatAccordion>
+                @foreach (var homeworkSubmission in _othersHomeworkScores)
+                {
+                    <MatExpansionPanel>
+                        <MatExpansionPanelSummary>
+                            <MatExpansionPanelHeader>
+                                @(_homework.Type == HomeworkType.Single ? homeworkSubmission.Key.SubmitUser.Name : homeworkSubmission.Key.SubmitGroup.GroupName)
+                            </MatExpansionPanelHeader>
+                            <MatExpansionPanelSubHeader>
+                                @if (homeworkSubmission.Key.Scores.Any(ss => ss.EvaluateUser == _user))
+                                {
+                                    <span class="oi oi-check text-success"></span>
+                                }
+                                else
+                                {
+                                    <span class="oi oi-x text-danger"></span>
+                                }
+                            </MatExpansionPanelSubHeader>
+                        </MatExpansionPanelSummary>
+                        <MatExpansionPanelDetails>
+                            <div class="card">
+                                <div class="card-header">Content</div>
+                                <div class="card-body">
+                                    @if (homeworkSubmission.Key.Type == HomeworkSubmissionType.bilibili)
+                                    {
+                                    <a href="https://www.bilibili.com/video/@homeworkSubmission.Key.Content" target="_blank">@homeworkSubmission.Key.Content</a>
+                                    }
+                                    else
+                                    {
+                                        <p class="text-body">@homeworkSubmission.Key.Content</p>
+                                    }
+                                </div>
+                            </div>
+                            <div class="card">
+                                <div class="card-header">Evaluate</div>
+                                <div class="card-body">
+                                    @if (!string.IsNullOrEmpty(homeworkSubmission.Value.HomeworkScoreId))
+                                    {
+                                        <div class="container-fluid">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Score item</th>
+                                                        <th>Range</th>
+                                                        <th>Score</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var subScore in homeworkSubmission.Value.Scores)
+                                                    {
+                                                        <tr>
+                                                            <td>@subScore.ScoreItem.Description</td>
+                                                            <td>@subScore.ScoreItem.MinScore - @subScore.ScoreItem.MaxScore</td>
+                                                            <td>@subScore.Score</td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <formset class="form-group">
+                                            <table class="table">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Score item</th>
+                                                        <th>Range</th>
+                                                        <th>Score</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach (var subScore in homeworkSubmission.Value.Scores)
+                                                    {
+                                                        <tr>
+                                                            <td>@subScore.ScoreItem.Description</td>
+                                                            <td>@subScore.ScoreItem.MinScore - @subScore.ScoreItem.MaxScore</td>
+                                                            <td>
+                                                                <input class="form-control" type="number" min="@subScore.ScoreItem.MinScore" max="@subScore.ScoreItem.MaxScore" @bind="subScore.Score" />
+                                                            </td>
+                                                        </tr>
+                                                    }
+                                                </tbody>
+                                            </table>
+                                            <button type="submit" class="btn btn-primary" @onclick="@(() => SubmitScore(homeworkSubmission.Value))">Submit</button>
+                                        </formset>
+                                    }
+                                </div>
+                            </div>
+                        </MatExpansionPanelDetails>
+                    </MatExpansionPanel>
+                }
+            </MatAccordion>
+        }
     }
     else if (_homework.Deadline < DateTime.Now)
     {
@@ -92,15 +212,15 @@ else
             <fieldset class="form-group">
                 <div class="form-group">
                     <label>Type</label>
-                    <select class="custom-select" @bind="@_homeworkSubmission.Type">
+                    <select class="custom-select" @bind="@_myHomeworkSubmission.Type">
                         <option value="@(Data.HomeworkSubmissionType.bilibili)">bilibili</option>
                         <option value="@(Data.HomeworkSubmissionType.Other)">Other</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Content</label>
-                    <input class="form-control" type="text" @bind="_homeworkSubmission.Content" />
-                    @if (_homeworkSubmission.Type == HomeworkSubmissionType.bilibili)
+                    <input class="form-control" type="text" @bind="_myHomeworkSubmission.Content" />
+                    @if (_myHomeworkSubmission.Type == HomeworkSubmissionType.bilibili)
                     {
                         <p class="text-info">When choose bilibili, just input BV number.</p>
                     }
@@ -111,8 +231,6 @@ else
     }
 }
 
-
-
 @code {
 
     User _user;
@@ -121,55 +239,117 @@ else
 
     Data.Homework _homework;
 
-    Data.HomeworkSubmission _homeworkSubmission;
+    Data.HomeworkSubmission _myHomeworkSubmission;
+
+    List<Data.HomeworkScore> _myHomeworkScores;
+
+    Dictionary<Data.HomeworkSubmission, Data.HomeworkScore> _othersHomeworkScores = new Dictionary<HomeworkSubmission, HomeworkScore>();
 
     bool _hasSubmission = false;
 
     void SubmitHomework()
     {
-        _homeworkSubmission.HomeworkSubmissionId = Guid.NewGuid().ToString();
-        _homeworkSubmission.Homework = _homework;
-        _homeworkSubmission.SubmitUser = _user;
-        _homeworkSubmission.SubmitGroup = _group;
-        _homeworkSubmission.SubmitTime = DateTime.Now;
-        Db.HomeworkSubmits.Add(_homeworkSubmission);
+        _myHomeworkSubmission.HomeworkSubmissionId = Guid.NewGuid().ToString();
+        _myHomeworkSubmission.Homework = _homework;
+        _myHomeworkSubmission.SubmitUser = _user;
+        _myHomeworkSubmission.SubmitGroup = _group;
+        _myHomeworkSubmission.SubmitTime = DateTime.Now;
+        Db.HomeworkSubmits.Add(_myHomeworkSubmission);
         Db.SaveChangesAsync();
         _hasSubmission = true;
-        ToastService.ShowSuccess($"SubmitID: {_homeworkSubmission.HomeworkSubmissionId}","Submit success");
+        ToastService.ShowSuccess($"SubmitID: {_myHomeworkSubmission.HomeworkSubmissionId}", "Submit success");
+    }
+
+    void SubmitScore(HomeworkScore score)
+    {
+        foreach (var subScore in score.Scores)
+        {
+            if (subScore.Score < subScore.ScoreItem.MinScore || subScore.Score > subScore.ScoreItem.MaxScore)
+            {
+                ToastService.ShowError("Score out of range.","Submit failed");
+                return;
+            }
+        }
+        score.HomeworkScoreId = Guid.NewGuid().ToString();
+        Db.HomeworkScores.Add(score);
+        Db.SaveChangesAsync();
     }
 
     protected override async Task OnInitializedAsync()
     {
         var userc = (await authenticationStateTask).User;
-        _user = Db.Users.Include(u => u.Group).Single(u => u.UserId == userc.FindFirst("UserId").Value);
+        _user = Db.Users
+            .Include(u => u.Group)
+            .Single(u => u.UserId == userc.FindFirst("UserId").Value);
         if (_user.Group != null)
         {
             _group = _user.Group;
         }
-        _homework = Db.Homeworks.Include(h => h.Owner).SingleOrDefault(h => h.HomeworkId == HomeworkId);
+        _homework = Db.Homeworks
+            .Include(h => h.Owner)
+            .Include(h => h.ScoreItems)
+            .SingleOrDefault(h => h.HomeworkId == HomeworkId);
         if (_homework != null)
         {
+
+            var homeworkSubmissions = Db.HomeworkSubmits
+                .Where(s => s.Homework == _homework)
+                .Include(s => s.SubmitUser)
+                .Include(s => s.SubmitGroup);
+
+            var homeworkScores = Db.HomeworkScores
+                .Where(s => s.Homework == _homework && s.EvaluateUser == _user)
+                .Include(s => s.Scores);
+
             if (_homework.Type == HomeworkType.Single)
             {
-                var stuId = (await authenticationStateTask).User.FindFirst("UserId").Value;
-                _homeworkSubmission = Db.HomeworkSubmits.SingleOrDefault(s => s.Homework == _homework && s.SubmitUser == _user);
+                _myHomeworkSubmission = homeworkSubmissions
+                    .SingleOrDefault(s => s.SubmitUser == _user);
             }
             else
             {
-                var stuId = (await authenticationStateTask).User.FindFirst("UserId").Value;
                 if (_group != null)
                 {
-                    _homeworkSubmission = Db.HomeworkSubmits.Include(s => s.SubmitUser).Include(s=>s.Scores).ThenInclude(s => s.Scores).SingleOrDefault(s => s.Homework == _homework && s.SubmitGroup == _group);
+                    _myHomeworkSubmission = homeworkSubmissions
+                        .SingleOrDefault(s => s.Homework == _homework && s.SubmitGroup == _group);
                 }
-
             }
-            if (_homeworkSubmission != null)
+            if (_myHomeworkSubmission != null)
             {
                 _hasSubmission = true;
+                _myHomeworkScores = Db.HomeworkScores
+                    .Where(s => s.HomeworkSubmission == _myHomeworkSubmission)
+                    .Include(s => s.Scores)
+                    .ToList();
+
+                foreach (var homeworkSubmission in homeworkSubmissions)
+                {
+                    if (homeworkSubmission != _myHomeworkSubmission)
+                    {
+                        var score = homeworkScores.SingleOrDefault(s => s.EvaluateUser == _user && s.HomeworkSubmission == homeworkSubmission);
+                        score ??= new HomeworkScore
+                        {
+                            EvaluateUser = _user,
+                            Homework = _homework,
+                            HomeworkSubmission = homeworkSubmission,
+                        };
+                        _homework.ScoreItems.ForEach(si =>
+                        {
+                            score.Scores.Add(new HomeworkScore.SubScore
+                            {
+                                HomeworkScore = score,
+                                ScoreItem = si,
+                                SubScoreId = Guid.NewGuid().ToString()
+                            });
+                        });
+
+                        _othersHomeworkScores.Add(homeworkSubmission, score);
+                    }
+                }
             }
             else
             {
-                _homeworkSubmission = new HomeworkSubmission();
+                _myHomeworkSubmission = new HomeworkSubmission();
             }
         }
         await base.OnInitializedAsync();
@@ -180,4 +360,5 @@ else
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
+
 }

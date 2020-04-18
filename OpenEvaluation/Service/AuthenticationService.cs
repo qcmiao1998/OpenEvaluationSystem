@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Components.Authorization;
+﻿using System;
+using Microsoft.AspNetCore.Components.Authorization;
 using OpenEvaluation.Data;
 using OpenEvaluation.Helpers;
 using System.Linq;
@@ -6,6 +7,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.ProtectedBrowserStorage;
 using Blazored.Toast.Services;
+using Microsoft.AspNetCore.Components;
 
 namespace OpenEvaluation.Service
 {
@@ -14,27 +16,31 @@ namespace OpenEvaluation.Service
         private readonly EvaluateContext _db;
         private readonly ProtectedSessionStorage _storage;
         private readonly IToastService _toastService;
+        private readonly NavigationManager _navigation;
 
-        public AuthenticationService(EvaluateContext dbContext, ProtectedSessionStorage storage, IToastService toastService)
+        public AuthenticationService(EvaluateContext dbContext, ProtectedSessionStorage storage, IToastService toastService, NavigationManager navigation)
         {
             _db = dbContext;
             _storage = storage;
             _toastService = toastService;
+            _navigation = navigation;
         }
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             var uId = await _storage.GetAsync<string>("UserId");
             var name = await _storage.GetAsync<string>("Name");
             var role = await _storage.GetAsync<string>("Role");
+            var expireTime = await _storage.GetAsync<DateTime>("ExpireTime");
 
             ClaimsIdentity identity;
 
-            if (string.IsNullOrWhiteSpace(uId) || string.IsNullOrWhiteSpace(role) || string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(uId) || string.IsNullOrWhiteSpace(role) || string.IsNullOrWhiteSpace(name) || expireTime < DateTime.Now)
             {
                 identity = new ClaimsIdentity(); // No auth in session storage
             }
             else
             {
+                _ = _storage.SetAsync("ExpireTime", DateTime.Now.AddHours(5));
                 identity = new ClaimsIdentity(new[]
                 {
                     new Claim("UserId", uId),
@@ -51,21 +57,40 @@ namespace OpenEvaluation.Service
         public void Login(string userId, string password)
         {
 
-            var user = _db.Users.FirstOrDefault(u => u.UserId == userId && u.Password == Md5.GetMd5(userId + password));
+            var user = _db.Users.SingleOrDefault(u => u.UserId == userId && (u.Password == Md5.GetMd5(userId + password) || string.IsNullOrEmpty(u.Password)));
             if (user != null)
             {
-                var identity = new ClaimsIdentity(new[]
+                ClaimsIdentity identity;
+                if (string.IsNullOrEmpty(user.Password))
                 {
-                    new Claim("UserId", user.UserId),
-                    new Claim(ClaimTypes.Role,user.Role.ToString()),
-                    new Claim(ClaimTypes.Name,user.Name),
-                }, "Login Page");
+                    identity = new ClaimsIdentity(new[]
+                    {
+                        new Claim("UserId", user.UserId),
+                        new Claim(ClaimTypes.Role,"NewUser"),
+                        new Claim(ClaimTypes.Name,user.Name),
+                    }, "NewUser");
+                }
+                else
+                {
+                    identity = new ClaimsIdentity(new[]
+                    {
+                        new Claim("UserId", user.UserId),
+                        new Claim(ClaimTypes.Role,user.Role.ToString()),
+                        new Claim(ClaimTypes.Name,user.Name),
+                    }, "Login Page");
 
-                _storage.SetAsync("UserId", user.UserId);
-                _storage.SetAsync("Name", user.Name);
-                _storage.SetAsync("Role", user.Role.ToString());
+                    _storage.SetAsync("UserId", user.UserId);
+                    _storage.SetAsync("Name", user.Name);
+                    _storage.SetAsync("Role", user.Role.ToString());
+                    _storage.SetAsync("ExpireTime", DateTime.Now.AddHours(5));
+                }
 
                 var claims = new ClaimsPrincipal(identity);
+
+                if (identity.FindFirst(ClaimTypes.Role).Value == "NewUser")
+                {
+                    _navigation.NavigateTo("/initpasswd", true);
+                }
 
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(claims)));
             }

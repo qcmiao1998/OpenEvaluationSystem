@@ -1,8 +1,38 @@
 ﻿@page "/groups"
 @attribute [Authorize(Roles = "Teacher")]
 
-    <h3>Manage Groups</h3>
+<h3>Manage Groups</h3>
+
+<div class="container-fluid">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Group name</th>
+            <th>Members</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(var group in _groups)
+        {
+            <tr>
+                <td>@group.GroupName</td>
+                <td>@string.Join(", ", group.Users.Select(u => u.Name))</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
 
 @code {
+    List<Data.Group> _groups;
+
+    protected override Task OnInitializedAsync()
+    {
+        _groups = Db.Groups
+            .Include(g => g.Users)
+            .ToList();
+
+        return base.OnInitializedAsync();
+    }
 
 }

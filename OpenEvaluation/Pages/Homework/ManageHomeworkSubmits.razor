@@ -1,25 +1,140 @@
 ﻿@page "/homeworks/{HomeworkId}"
+@using System.Globalization
 @using Microsoft.EntityFrameworkCore
 @attribute [Authorize(Roles = "Teacher")]
 
-<h3>@homework.HomeworkName</h3>
+<h3>Homework</h3>
+
+@if (_homework == null)
+{
+    <p class="text-body">No homework "@HomeworkId" found.</p>
+}
+else
+{
+    <div class="container-fluid">
+        <table class="table">
+            <tbody>
+            <tr>
+                <th>Name</th>
+                <td>@_homework.HomeworkName</td>
+            </tr>
+            <tr>
+                <th>Type</th>
+                <td>@_homework.Type</td>
+            </tr>
+            <tr>
+                <th>Teacher</th>
+                <td>@_homework.Owner.Name</td>
+            </tr>
+            <tr>
+                <th>Deadline</th>
+                <td>@_homework.Deadline.ToString(CultureInfo.CurrentCulture)</td>
+            </tr>
+            <tr>
+                <th>Description</th>
+                <td>@_homework.Description</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <h4>Score items</h4>
+    <div class="container-fluid">
+        <table class="table">
+            <thead>
+            <tr>
+                <th>Description</th>
+                <th>Min Score</th>
+                <th>Max Score</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach (var scoreItem in _homework.ScoreItems)
+            {
+                <tr>
+                    <td>@scoreItem.Description</td>
+                    <td>@scoreItem.MinScore</td>
+                    <td>@scoreItem.MaxScore</td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h4>Submissions</h4>
+    <div class="container-fluid">
+        <table class="table">
+            <thead>
+                <tr>
+                    @if (_homework.Type == HomeworkType.Group)
+                    {
+                        <th>Group</th>
+                    }
+                    <th>Student</th>
+                    <th>Average Score</th>
+                    <th>Content</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var homeworkSubmission in _submissions)
+            {
+                <tr>
+                    @if (_homework.Type == HomeworkType.Group)
+                    {
+                        <td>@homeworkSubmission.SubmitGroup.GroupName</td>
+                    }
+                    <td>@homeworkSubmission.SubmitUser.Name</td>
+                    
+                    @if (homeworkSubmission.Scores.Count == 0)
+                    {
+                        <td>0 (0)</td>
+                    }
+                    else
+                    {
+                        <td>@homeworkSubmission.Scores.Average(s => s.Scores.Sum(ss => ss.Score)) (@homeworkSubmission.Scores.Count)</td>
+                    }
+                    
+                    @if (homeworkSubmission.Type == HomeworkSubmissionType.bilibili)
+                    {
+                        <td><a href="https://www.bilibili.com/video/@homeworkSubmission.Content" target="_blank">@homeworkSubmission.Content</a></td>
+                    }
+                    else
+                    {
+                        <td>@homeworkSubmission.Content</td>
+                    }
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}
 
 @code {
     [Parameter]
     public string HomeworkId { get; set; }
 
-    Data.Homework homework;
+    Data.Homework _homework;
+
+    List<Data.HomeworkSubmission> _submissions;
 
     protected override async Task OnInitializedAsync()
     {
-        var hw = Db.Homeworks.Where(h => h.HomeworkId == HomeworkId).Include(h => h.Submits).Include(h => h.ScoreItems).ToList();
-        if (hw.Count != 1)
+        _homework = Db.Homeworks
+            .Include(h => h.Owner)
+            .Include(h => h.ScoreItems)
+            .SingleOrDefault(h => h.HomeworkId == HomeworkId);
+
+        if (_homework != null)
         {
-            Navigation.NavigateTo("/homeworks", true);
-            return;
+            _submissions = Db.HomeworkSubmits
+                .Where(s => s.Homework == _homework)
+                .Include(s => s.SubmitUser)
+                .Include(s => s.SubmitGroup)
+                .Include(s => s.Scores)
+                .ThenInclude(s => s.Scores)
+                .ToList();
         }
 
-        homework = hw.First();
         await base.OnInitializedAsync();
     }
 

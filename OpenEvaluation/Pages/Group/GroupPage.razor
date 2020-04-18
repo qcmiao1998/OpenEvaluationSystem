@@ -31,8 +31,8 @@
                 <input class="form-control" type="text" @bind="StudentGroup.GroupName" />
             </div>
             <div class="form-group card">
+                <div class="card-header">Group members</div>
                 <div class="form-group card-body">
-                    <label class="font-weight-bold">Group members</label>
                     <table class="table">
                         <thead>
                         <tr>
@@ -126,10 +126,9 @@
         return;
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
         await CheckStudentInGroup();
-        await base.OnAfterRenderAsync(firstRender);
+        await base.OnInitializedAsync();
     }
-
 }
