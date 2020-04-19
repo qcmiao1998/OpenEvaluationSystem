@@ -1,0 +1,116 @@
+﻿@page "/students"
+@using System.Globalization
+@using System.IO
+@using CsvHelper
+@attribute [Authorize(Roles = "Teacher")]
+
+<h3>Students</h3>
+<div class="container-fluid">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>UserId</th>
+            <th>Name</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach(var stu in _students)
+        {
+            <tr>
+                <td>@stu.UserId</td>
+                <td>@stu.Name</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<h4>Add students</h4>
+
+<MatFileUpload OnChange="@LoadCsv" Label="Drop file here or browse a CSV file with column UserId and Name" ></MatFileUpload>
+
+<div class="container-fluid">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>UserId</th>
+            <th>Name</th>
+        </tr>
+        </thead>
+        <tbody>
+        @foreach (var stu in _newStu)
+        {
+            <tr>
+                <td>@stu.UserId</td>
+                <td>@stu.Name</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+</div>
+
+<button type="submit" class="btn btn-primary" @onclick="CreateStudents">Create students</button>
+
+@code {
+    List<User> _students;
+
+    List<User> _newStu = new List<User>();
+
+    async Task LoadCsv(IMatFileUploadEntry[] files)
+    {
+        if (files.Length > 1)
+        {
+            ToastService.ShowWarning("One file at a time.");
+        }
+        var file = files.FirstOrDefault();
+        if (file == null)
+        {
+            return;
+        }
+        if (!file.Name.EndsWith(".csv",ignoreCase:true, null))
+        {
+            ToastService.ShowError("Please upload a csv file","Upload failed");
+            return;
+        }
+        await using MemoryStream stream = new MemoryStream();
+        await file.WriteToStreamAsync(stream);
+        stream.Position = 0;
+        using var reader = new StreamReader(stream);
+        using CsvReader csv = new CsvReader(reader, CultureInfo.InvariantCulture);
+        var records = csv.GetRecords<NewUser>();
+        foreach (var newUser in records)
+        {
+            if (_newStu.Any(u => u.UserId == newUser.UserId) || Db.Users.Any(u => u.UserId == newUser.UserId))
+            {
+                ToastService.ShowWarning($"UserID {newUser.UserId} has existed.");
+                continue;
+            }
+            _newStu.Add(new User
+            {
+                UserId = newUser.UserId,
+                Name = newUser.Name,
+                Role = Role.Student
+            });
+        }
+    }
+
+    async Task CreateStudents()
+    {
+        Db.Users.AddRange(_newStu);
+        await Db.SaveChangesAsync();
+        _students = Db.Users.Where(u => u.Role == Role.Student).ToList();
+        _newStu = new List<User>();
+    }
+
+    protected override Task OnInitializedAsync()
+    {
+        _students = Db.Users.Where(u => u.Role == Role.Student).ToList();
+        return base.OnInitializedAsync();
+    }
+
+    class NewUser
+    {
+        public string UserId { get; set; }
+        public string Name { get; set; }
+    }
+}

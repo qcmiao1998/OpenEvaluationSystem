@@ -1,6 +1,10 @@
 ﻿@page "/homeworks/{HomeworkId}"
 @using System.Globalization
+@using System.IO
+@using CsvHelper
 @using Microsoft.EntityFrameworkCore
+@using OpenEvaluation.Helpers
+@inject IJSRuntime Js
 @attribute [Authorize(Roles = "Teacher")]
 
 <h3>Homework</h3>
@@ -14,26 +18,26 @@ else
     <div class="container-fluid">
         <table class="table">
             <tbody>
-            <tr>
-                <th>Name</th>
-                <td>@_homework.HomeworkName</td>
-            </tr>
-            <tr>
-                <th>Type</th>
-                <td>@_homework.Type</td>
-            </tr>
-            <tr>
-                <th>Teacher</th>
-                <td>@_homework.Owner.Name</td>
-            </tr>
-            <tr>
-                <th>Deadline</th>
-                <td>@_homework.Deadline.ToString(CultureInfo.CurrentCulture)</td>
-            </tr>
-            <tr>
-                <th>Description</th>
-                <td>@_homework.Description</td>
-            </tr>
+                <tr>
+                    <th>Name</th>
+                    <td>@_homework.HomeworkName</td>
+                </tr>
+                <tr>
+                    <th>Type</th>
+                    <td>@_homework.Type</td>
+                </tr>
+                <tr>
+                    <th>Teacher</th>
+                    <td>@_homework.Owner.Name</td>
+                </tr>
+                <tr>
+                    <th>Deadline</th>
+                    <td>@_homework.Deadline.ToString(CultureInfo.CurrentCulture)</td>
+                </tr>
+                <tr>
+                    <th>Description</th>
+                    <td>@_homework.Description</td>
+                </tr>
             </tbody>
         </table>
     </div>
@@ -42,26 +46,27 @@ else
     <div class="container-fluid">
         <table class="table">
             <thead>
-            <tr>
-                <th>Description</th>
-                <th>Min Score</th>
-                <th>Max Score</th>
-            </tr>
+                <tr>
+                    <th>Description</th>
+                    <th>Min Score</th>
+                    <th>Max Score</th>
+                </tr>
             </thead>
             <tbody>
-            @foreach (var scoreItem in _homework.ScoreItems)
-            {
-                <tr>
-                    <td>@scoreItem.Description</td>
-                    <td>@scoreItem.MinScore</td>
-                    <td>@scoreItem.MaxScore</td>
-                </tr>
-            }
+                @foreach (var scoreItem in _homework.ScoreItems)
+                {
+                    <tr>
+                        <td>@scoreItem.Description</td>
+                        <td>@scoreItem.MinScore</td>
+                        <td>@scoreItem.MaxScore</td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
 
     <h4>Submissions</h4>
+    <a href="" @onclick="DownloadScore" @onclick:preventDefault>Download scores</a>
     <div class="container-fluid">
         <table class="table">
             <thead>
@@ -76,37 +81,38 @@ else
                 </tr>
             </thead>
             <tbody>
-            @foreach (var homeworkSubmission in _submissions)
-            {
-                <tr>
-                    @if (_homework.Type == HomeworkType.Group)
-                    {
-                        <td>@homeworkSubmission.SubmitGroup.GroupName</td>
-                    }
-                    <td>@homeworkSubmission.SubmitUser.Name</td>
-                    
-                    @if (homeworkSubmission.Scores.Count == 0)
-                    {
-                        <td>0 (0)</td>
-                    }
-                    else
-                    {
-                        <td>@homeworkSubmission.Scores.Average(s => s.Scores.Sum(ss => ss.Score)) (@homeworkSubmission.Scores.Count)</td>
-                    }
-                    
-                    @if (homeworkSubmission.Type == HomeworkSubmissionType.bilibili)
-                    {
-                        <td><a href="https://www.bilibili.com/video/@homeworkSubmission.Content" target="_blank">@homeworkSubmission.Content</a></td>
-                    }
-                    else
-                    {
-                        <td>@homeworkSubmission.Content</td>
-                    }
-                </tr>
-            }
+                @foreach (var homeworkSubmission in _submissions)
+                {
+                    <tr>
+                        @if (_homework.Type == HomeworkType.Group)
+                        {
+                            <td>@homeworkSubmission.SubmitGroup.GroupName</td>
+                        }
+                        <td>@homeworkSubmission.SubmitUser.Name</td>
+
+                        @if (homeworkSubmission.Scores.Count == 0)
+                        {
+                            <td>0 (0)</td>
+                        }
+                        else
+                        {
+                            <td>@homeworkSubmission.Scores.Average(s => s.Scores.Sum(ss => ss.Score)) (@homeworkSubmission.Scores.Count)</td>
+                        }
+
+                        @if (homeworkSubmission.Type == HomeworkSubmissionType.bilibili)
+                        {
+                            <td><a href="https://www.bilibili.com/video/@homeworkSubmission.Content" target="_blank">@homeworkSubmission.Content</a></td>
+                        }
+                        else
+                        {
+                            <td>@homeworkSubmission.Content</td>
+                        }
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
+
 }
 
 @code {
@@ -116,6 +122,31 @@ else
     Data.Homework _homework;
 
     List<Data.HomeworkSubmission> _submissions;
+
+    async Task DownloadScore()
+    {
+        var output = new List<SubmitOutput>();
+        foreach (var homeworkSubmission in _submissions)
+        {
+            output.Add(new SubmitOutput
+            {
+                SubmitId = homeworkSubmission.HomeworkSubmissionId,
+                SubmitGroupId = homeworkSubmission.SubmitGroup != null ? homeworkSubmission.SubmitGroup.GroupId : "NULL",
+                SubmitGroup = homeworkSubmission.SubmitGroup != null ? homeworkSubmission.SubmitGroup.GroupName:"NULL",
+                SubmitUserId = homeworkSubmission.SubmitUser.UserId,
+                SubmitUser = homeworkSubmission.SubmitUser.Name,
+                EvaluateUserCount = homeworkSubmission.Scores.Count,
+                Score = homeworkSubmission.Scores.Count != 0 ? homeworkSubmission.Scores.Average(s => s.Scores.Sum(ss => ss.Score)) : 0,
+                Content = homeworkSubmission.Content
+            });
+        }
+        await using var stream = new MemoryStream();
+        await using var writer = new StreamWriter(stream);
+        await using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+        csv.WriteRecords(output);
+        writer.Flush();
+        await FileUtil.SaveAs(Js, $"{_homework.HomeworkId}.csv", stream.ToArray());
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -140,4 +171,16 @@ else
 
     [CascadingParameter]
     private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    class SubmitOutput
+    {
+        public string SubmitId { get; set; }
+        public string SubmitGroupId { get; set; }
+        public string SubmitGroup { get; set; }
+        public string SubmitUserId { get; set; }
+        public string SubmitUser { get; set; }
+        public int EvaluateUserCount { get; set; }
+        public double Score { get; set; }
+        public string Content { get; set; }
+    }
 }
