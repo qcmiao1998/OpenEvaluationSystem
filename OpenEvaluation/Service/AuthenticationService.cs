@@ -56,8 +56,15 @@ namespace OpenEvaluation.Service
 
         public void Login(string userId, string password)
         {
-
-            var user = _db.Users.SingleOrDefault(u => u.UserId == userId && (u.Password == Md5.GetMd5(userId + password) || string.IsNullOrEmpty(u.Password)));
+            User user;
+            if (userId == password)
+            {
+                user = _db.Users.SingleOrDefault(u => u.UserId == userId && string.IsNullOrEmpty(u.Password));
+            }
+            else
+            {
+                user = _db.Users.SingleOrDefault(u => u.UserId == userId && u.Password == Md5.GetMd5(userId + password));
+            }
             if (user != null)
             {
                 ClaimsIdentity identity;
@@ -69,6 +76,11 @@ namespace OpenEvaluation.Service
                         new Claim(ClaimTypes.Role,"NewUser"),
                         new Claim(ClaimTypes.Name,user.Name),
                     }, "NewUser");
+
+                    _storage.SetAsync("UserId", user.UserId);
+                    _storage.SetAsync("Name", user.Name);
+                    _storage.SetAsync("Role", "NewUser");
+                    _storage.SetAsync("ExpireTime", DateTime.Now.AddHours(5));
                 }
                 else
                 {
@@ -106,6 +118,7 @@ namespace OpenEvaluation.Service
             _storage.DeleteAsync("UserId");
             _storage.DeleteAsync("Name");
             _storage.DeleteAsync("Role");
+            _storage.DeleteAsync("ExpireTime");
 
             var identity = new ClaimsIdentity();
             var claims = new ClaimsPrincipal(identity);
