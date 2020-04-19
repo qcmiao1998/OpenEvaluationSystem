@@ -73,7 +73,7 @@ else
                     </tr>
                     <tr>
                         <th>Average score</th>
-                        @if (_myHomeworkScores.Count == 0)
+                        @if (_myHomeworkScores == null || _myHomeworkScores?.Count == 0)
                         {
                             <td>NO SCORE NOW</td>
                         }

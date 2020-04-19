@@ -57,13 +57,10 @@ namespace OpenEvaluation.Service
         public void Login(string userId, string password)
         {
             User user;
-            if (userId == password)
+            user = _db.Users.SingleOrDefault(u => u.UserId == userId && u.Password == Md5.GetMd5(userId + password));
+            if (userId == password && user == null)
             {
                 user = _db.Users.SingleOrDefault(u => u.UserId == userId && string.IsNullOrEmpty(u.Password));
-            }
-            else
-            {
-                user = _db.Users.SingleOrDefault(u => u.UserId == userId && u.Password == Md5.GetMd5(userId + password));
             }
             if (user != null)
             {
