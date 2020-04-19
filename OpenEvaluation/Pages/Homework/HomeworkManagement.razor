@@ -131,6 +131,7 @@
         newHomework.Owner = teacher;
         Db.Homeworks.Add(newHomework);
         await Db.SaveChangesAsync();
+        allHomework = Db.Homeworks.OrderBy(h => h.Deadline).Include(h => h.Submits).Include(h => h.Owner).ToList();
         newHomework = new Data.Homework();
         this.StateHasChanged();
     }
