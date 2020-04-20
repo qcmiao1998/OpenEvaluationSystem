@@ -45,16 +45,18 @@
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (userc?.Identity.IsAuthenticated == true)
+        {
+            return;
+        }
         userc = (await authenticationStateTask).User;
         if (userc.Identity.IsAuthenticated)
         {
             name = userc.Identity.Name;
             userId = userc.FindFirst("UserId").Value;
             role = userc.FindFirst(ClaimTypes.Role).Value;
+            StateHasChanged();
         }
-        this.StateHasChanged();
         await base.OnAfterRenderAsync(firstRender);
     }
-
-
 }
